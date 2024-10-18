@@ -1,7 +1,7 @@
 //! S3 Authentication
 
 mod secret_key;
-pub use self::secret_key::{Credentials, SecretKey};
+pub use self::secret_key::{Credentials, Scope, SecretKey};
 
 mod simple_auth;
 pub use self::simple_auth::SimpleAuth;

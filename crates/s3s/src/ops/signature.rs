@@ -1,5 +1,6 @@
 use crate::auth::Credentials;
 use crate::auth::S3Auth;
+use crate::auth::Scope;
 use crate::error::*;
 use crate::http;
 use crate::http::{AwsChunkedStream, Body, Multipart};
@@ -166,8 +167,19 @@ impl SignatureContext<'_> {
             return Err(s3_error!(SignatureDoesNotMatch));
         }
 
+        let scope = Scope {
+            date: credential.date.to_owned(),
+            region: credential.aws_region.to_owned(),
+            service: credential.aws_service.to_owned(),
+            request: "aws4_request".to_owned(),
+        };
+
         self.multipart = Some(multipart);
-        Ok(Credentials { access_key, secret_key })
+        Ok(Credentials {
+            access_key,
+            secret_key,
+            scope: Some(scope),
+        })
     }
 
     pub async fn v4_check_presigned_url(&mut self) -> S3Result<Credentials> {
@@ -231,6 +243,12 @@ impl SignatureContext<'_> {
         Ok(Credentials {
             access_key: access_key.into(),
             secret_key,
+            scope: Some(Scope {
+                date: presigned_url.credential.date.to_owned(),
+                region: presigned_url.credential.aws_region.to_owned(),
+                service: presigned_url.credential.aws_service.to_owned(),
+                request: "aws4_request".to_owned(),
+            }),
         })
     }
 
@@ -329,6 +347,12 @@ impl SignatureContext<'_> {
         Ok(Credentials {
             access_key: access_key.into(),
             secret_key,
+            scope: Some(Scope {
+                date: authorization.credential.date.to_owned(),
+                region: authorization.credential.aws_region.to_owned(),
+                service: authorization.credential.aws_service.to_owned(),
+                request: "aws4_request".to_owned(),
+            }),
         })
     }
 
@@ -384,6 +408,7 @@ impl SignatureContext<'_> {
         Ok(Credentials {
             access_key: access_key.into(),
             secret_key,
+            scope: None,
         })
     }
 
@@ -418,6 +443,7 @@ impl SignatureContext<'_> {
         Ok(Credentials {
             access_key: access_key.into(),
             secret_key,
+            scope: None,
         })
     }
 }

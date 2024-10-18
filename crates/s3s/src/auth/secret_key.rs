@@ -6,6 +6,19 @@ use zeroize::Zeroize;
 pub struct Credentials {
     pub access_key: String,
     pub secret_key: SecretKey,
+    pub scope: Option<Scope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Scope {
+    /// \<date\> value is specified using YYYYMMDD format.
+    pub date: String,
+    /// region
+    pub region: String,
+    /// \<aws-service\> value is `s3` when sending request to Amazon S3.
+    pub service: String,
+
+    pub request: String,
 }
 
 #[derive(Clone, PartialEq, Eq)]
