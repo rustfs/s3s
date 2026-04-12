@@ -26,7 +26,7 @@ fn uri_encode(output: &mut String, input: &str, encode_slash: bool) {
 
     for &byte in input.as_bytes() {
         match byte {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'_' | b'-' | b'~' | b'.' => buf.push(byte),
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'_' | b'-' | b'~' | b'.' | b'=' => buf.push(byte),
             b'/' => {
                 if encode_slash {
                     buf.push(b'%');
@@ -632,6 +632,67 @@ mod tests {
 
         let signature = calculate_signature(&string_to_sign, &secret_access_key, &date, region, service);
         assert_eq!(signature, "98ad721746da40c64f1a55b78f14c238d841ea1380cd77a1b5971af0ece108bd");
+    }
+
+    #[test]
+    fn canonical_request_preserves_trailing_equals_in_uri_path() {
+        let headers = OrderedHeaders::from_slice_unchecked(&[
+            ("host", "examplebucket.s3.amazonaws.com"),
+            ("x-amz-content-sha256", EMPTY_STRING_SHA256_HASH),
+            ("x-amz-date", "20130524T000000Z"),
+        ]);
+
+        let canonical_request = create_canonical_request(
+            &Method::GET,
+            "/bucket/path/sitemap.xmlage=",
+            &[] as &[(&str, &str)],
+            &headers,
+            Payload::empty(),
+        );
+
+        let mut lines = canonical_request.lines();
+        assert_eq!(lines.next(), Some("GET"));
+        assert_eq!(lines.next(), Some("/bucket/path/sitemap.xmlage="));
+    }
+
+    #[test]
+    fn presigned_canonical_request_preserves_trailing_equals_in_uri_path() {
+        let headers = OrderedHeaders::from_slice_unchecked(&[("host", "examplebucket.s3.amazonaws.com")]);
+        let query_strings_for_signing = &[
+            ("X-Amz-Algorithm", "AWS4-HMAC-SHA256"),
+            ("X-Amz-Credential", "AKIAIOSFODNN7EXAMPLE/20130524/us-east-1/s3/aws4_request"),
+            ("X-Amz-Date", "20130524T000000Z"),
+            ("X-Amz-Expires", "86400"),
+            ("X-Amz-SignedHeaders", "host"),
+        ];
+
+        let canonical_request =
+            create_presigned_canonical_request(&Method::GET, "/bucket/path/sitemap.xmlage=", query_strings_for_signing, &headers);
+
+        let mut lines = canonical_request.lines();
+        assert_eq!(lines.next(), Some("GET"));
+        assert_eq!(lines.next(), Some("/bucket/path/sitemap.xmlage="));
+    }
+
+    #[test]
+    fn canonical_request_still_encodes_other_reserved_uri_path_characters() {
+        let headers = OrderedHeaders::from_slice_unchecked(&[
+            ("host", "examplebucket.s3.amazonaws.com"),
+            ("x-amz-content-sha256", EMPTY_STRING_SHA256_HASH),
+            ("x-amz-date", "20130524T000000Z"),
+        ]);
+
+        let canonical_request = create_canonical_request(
+            &Method::GET,
+            "/bucket/path/test$file 100%.txt",
+            &[] as &[(&str, &str)],
+            &headers,
+            Payload::empty(),
+        );
+
+        let mut lines = canonical_request.lines();
+        assert_eq!(lines.next(), Some("GET"));
+        assert_eq!(lines.next(), Some("/bucket/path/test%24file%20100%25.txt"));
     }
 
     #[test]
