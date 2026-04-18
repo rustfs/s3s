@@ -125,14 +125,13 @@ impl Payload<'_> {
     }
 }
 
-/// create canonical request
-#[must_use]
-pub fn create_canonical_request(
+fn create_canonical_request_with_canonical_uri(
     method: &Method,
-    uri_path: &str,
+    canonical_uri: &str,
     decoded_query_strings: &[(impl AsRef<str>, impl AsRef<str>)],
     signed_headers: &OrderedHeaders<'_>,
     payload: Payload<'_>,
+    skip_signature_query: bool,
 ) -> String {
     let mut ans = String::with_capacity(256);
 
@@ -144,7 +143,7 @@ pub fn create_canonical_request(
 
     {
         // <CanonicalURI>\n
-        uri_encode(&mut ans, uri_path, false);
+        ans.push_str(canonical_uri);
         ans.push('\n');
     }
 
@@ -153,6 +152,9 @@ pub fn create_canonical_request(
         let encoded_query_strings = {
             let mut qs = <SmallVec<[(String, String); 16]>>::new();
             for (n, v) in decoded_query_strings {
+                if skip_signature_query && is_skipped_query_string(n.as_ref()) {
+                    continue;
+                }
                 let name = uri_encode_string(n.as_ref(), true);
                 let value = uri_encode_string(v.as_ref(), true);
                 qs.push((name, value));
@@ -248,6 +250,30 @@ pub fn create_canonical_request(
     }
 
     ans
+}
+
+/// create canonical request
+#[cfg(test)]
+#[must_use]
+pub fn create_canonical_request(
+    method: &Method,
+    uri_path: &str,
+    decoded_query_strings: &[(impl AsRef<str>, impl AsRef<str>)],
+    signed_headers: &OrderedHeaders<'_>,
+    payload: Payload<'_>,
+) -> String {
+    let canonical_uri = uri_encode_string(uri_path, false);
+    create_canonical_request_with_canonical_uri(method, &canonical_uri, decoded_query_strings, signed_headers, payload, false)
+}
+
+pub(crate) fn create_canonical_request_with_raw_uri_path(
+    method: &Method,
+    raw_uri_path: &str,
+    decoded_query_strings: &[(impl AsRef<str>, impl AsRef<str>)],
+    signed_headers: &OrderedHeaders<'_>,
+    payload: Payload<'_>,
+) -> String {
+    create_canonical_request_with_canonical_uri(method, raw_uri_path, decoded_query_strings, signed_headers, payload, false)
 }
 
 /// create string to sign
@@ -403,6 +429,7 @@ pub fn calculate_signature(
 }
 
 /// create presigned canonical request
+#[cfg(test)]
 pub fn create_presigned_canonical_request(
     method: &Method,
     uri_path: &str,
@@ -410,114 +437,18 @@ pub fn create_presigned_canonical_request(
     signed_headers: &OrderedHeaders<'_>,
     payload: Payload<'_>,
 ) -> String {
-    let mut ans = String::with_capacity(256);
-    {
-        // <HTTPMethod>\n
-        ans.push_str(method.as_str());
-        ans.push('\n');
-    }
-    {
-        // <CanonicalURI>\n
-        uri_encode(&mut ans, uri_path, false);
-        ans.push('\n');
-    }
-    {
-        // <CanonicalQueryString>\n
-        let encoded_query_strings = {
-            let mut qs = <SmallVec<[(String, String); 16]>>::new();
-            for (n, v) in decoded_query_strings {
-                if is_skipped_query_string(n.as_ref()) {
-                    continue;
-                }
-                let name = uri_encode_string(n.as_ref(), true);
-                let value = uri_encode_string(v.as_ref(), true);
-                qs.push((name, value));
-            }
-            stable_sort_by_first(&mut qs);
-            qs
-        };
+    let canonical_uri = uri_encode_string(uri_path, false);
+    create_canonical_request_with_canonical_uri(method, &canonical_uri, decoded_query_strings, signed_headers, payload, true)
+}
 
-        if let Some((first, remain)) = encoded_query_strings.split_first() {
-            {
-                let (name, value) = first;
-                ans.push_str(name);
-                ans.push('=');
-                ans.push_str(value);
-            }
-            for (name, value) in remain {
-                ans.push('&');
-                ans.push_str(name);
-                ans.push('=');
-                ans.push_str(value);
-            }
-        }
-
-        ans.push('\n');
-    }
-    {
-        // <CanonicalHeaders>\n
-        // According to AWS SigV4 spec, multiple headers with the same name should be
-        // combined into a single header with values separated by commas.
-
-        let headers_slice = signed_headers.as_ref();
-        let mut i = 0;
-        while i < headers_slice.len() {
-            let (name, value) = headers_slice[i];
-            if is_skipped_header(name) {
-                i += 1;
-                continue;
-            }
-
-            ans.push_str(name);
-            ans.push(':');
-            normalize_header_value(&mut ans, value);
-
-            // Combine values for headers with the same name (comma-separated)
-            let mut j = i + 1;
-            while j < headers_slice.len() && headers_slice[j].0 == name {
-                ans.push(',');
-                normalize_header_value(&mut ans, headers_slice[j].1);
-                j += 1;
-            }
-
-            ans.push('\n');
-            i = j;
-        }
-        ans.push('\n');
-    }
-    {
-        // <SignedHeaders>\n
-        // Each header name should only appear once, even if the header has multiple values
-        let headers_slice = signed_headers.as_ref();
-        let mut first_flag = true;
-        let mut i = 0;
-        while i < headers_slice.len() {
-            let (name, _) = headers_slice[i];
-            if is_skipped_header(name) {
-                i += 1;
-                continue;
-            }
-
-            if first_flag {
-                first_flag = false;
-            } else {
-                ans.push(';');
-            }
-            ans.push_str(name);
-
-            // Skip duplicate header names
-            while i < headers_slice.len() && headers_slice[i].0 == name {
-                i += 1;
-            }
-        }
-
-        ans.push('\n');
-    }
-    {
-        // <Payload>
-        append_payload(&mut ans, payload);
-    }
-    ans
+pub(crate) fn create_presigned_canonical_request_with_raw_uri_path(
+    method: &Method,
+    raw_uri_path: &str,
+    decoded_query_strings: &[(impl AsRef<str>, impl AsRef<str>)],
+    signed_headers: &OrderedHeaders<'_>,
+    payload: Payload<'_>,
+) -> String {
+    create_canonical_request_with_canonical_uri(method, raw_uri_path, decoded_query_strings, signed_headers, payload, true)
 }
 
 #[cfg(test)]
