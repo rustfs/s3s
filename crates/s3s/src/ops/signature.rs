@@ -376,9 +376,16 @@ impl SignatureContext<'_> {
             region,
             service,
         };
-        let canonical_request = sig_v4::create_presigned_canonical_request(method, self.decoded_uri_path, qs.as_ref(), &headers, payload);
+        let canonical_request =
+            sig_v4::create_presigned_canonical_request(method, self.decoded_uri_path, qs.as_ref(), &headers, payload);
         verifier.verify_with_raw_path_fallback(&canonical_request, || {
-            sig_v4::create_presigned_canonical_request_with_raw_uri_path(method, self.raw_uri_path, qs.as_ref(), &headers, payload)
+            sig_v4::create_presigned_canonical_request_with_raw_uri_path(
+                method,
+                self.raw_uri_path,
+                qs.as_ref(),
+                &headers,
+                payload,
+            )
         })?;
 
         if let Some(content_sha256) = self.hs.get_unique(crate::header::X_AMZ_CONTENT_SHA256)
