@@ -708,7 +708,7 @@ impl SignatureContext<'_> {
 mod tests {
     use super::*;
     use crate::S3ErrorCode;
-    use crate::auth::{SecretKey, SimpleAuth};
+    use crate::auth::SecretKey;
     use crate::config::{S3ConfigProvider, StaticConfigProvider};
     use crate::sig_v4;
     use crate::sig_v4::AmzDate;
