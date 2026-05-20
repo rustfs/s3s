@@ -125,14 +125,13 @@ impl Payload<'_> {
     }
 }
 
-/// create canonical request
-#[must_use]
-pub fn create_canonical_request(
+fn create_canonical_request_with_uri_mode(
     method: &Method,
     uri_path: &str,
     decoded_query_strings: &[(impl AsRef<str>, impl AsRef<str>)],
     signed_headers: &OrderedHeaders<'_>,
     payload: Payload<'_>,
+    raw_uri_path: bool,
 ) -> String {
     let mut ans = String::with_capacity(256);
 
@@ -144,7 +143,11 @@ pub fn create_canonical_request(
 
     {
         // <CanonicalURI>\n
-        uri_encode(&mut ans, uri_path, false);
+        if raw_uri_path {
+            ans.push_str(uri_path);
+        } else {
+            uri_encode(&mut ans, uri_path, false);
+        }
         ans.push('\n');
     }
 
@@ -248,6 +251,28 @@ pub fn create_canonical_request(
     }
 
     ans
+}
+
+/// create canonical request
+#[must_use]
+pub fn create_canonical_request(
+    method: &Method,
+    uri_path: &str,
+    decoded_query_strings: &[(impl AsRef<str>, impl AsRef<str>)],
+    signed_headers: &OrderedHeaders<'_>,
+    payload: Payload<'_>,
+) -> String {
+    create_canonical_request_with_uri_mode(method, uri_path, decoded_query_strings, signed_headers, payload, false)
+}
+
+pub(crate) fn create_canonical_request_with_raw_uri_path(
+    method: &Method,
+    raw_uri_path: &str,
+    decoded_query_strings: &[(impl AsRef<str>, impl AsRef<str>)],
+    signed_headers: &OrderedHeaders<'_>,
+    payload: Payload<'_>,
+) -> String {
+    create_canonical_request_with_uri_mode(method, raw_uri_path, decoded_query_strings, signed_headers, payload, true)
 }
 
 /// create string to sign
@@ -402,12 +427,12 @@ pub fn calculate_signature(
     hex(hmac_sha256(signing_key, string_to_sign))
 }
 
-/// create presigned canonical request
-pub fn create_presigned_canonical_request(
+fn create_presigned_canonical_request_with_uri_mode(
     method: &Method,
     uri_path: &str,
     decoded_query_strings: &[(impl AsRef<str>, impl AsRef<str>)],
     signed_headers: &OrderedHeaders<'_>,
+    raw_uri_path: bool,
     payload: Payload<'_>,
 ) -> String {
     let mut ans = String::with_capacity(256);
@@ -418,7 +443,11 @@ pub fn create_presigned_canonical_request(
     }
     {
         // <CanonicalURI>\n
-        uri_encode(&mut ans, uri_path, false);
+        if raw_uri_path {
+            ans.push_str(uri_path);
+        } else {
+            uri_encode(&mut ans, uri_path, false);
+        }
         ans.push('\n');
     }
     {
@@ -518,6 +547,27 @@ pub fn create_presigned_canonical_request(
         append_payload(&mut ans, payload);
     }
     ans
+}
+
+/// create presigned canonical request
+pub fn create_presigned_canonical_request(
+    method: &Method,
+    uri_path: &str,
+    decoded_query_strings: &[(impl AsRef<str>, impl AsRef<str>)],
+    signed_headers: &OrderedHeaders<'_>,
+    payload: Payload<'_>,
+) -> String {
+    create_presigned_canonical_request_with_uri_mode(method, uri_path, decoded_query_strings, signed_headers, false, payload)
+}
+
+pub(crate) fn create_presigned_canonical_request_with_raw_uri_path(
+    method: &Method,
+    raw_uri_path: &str,
+    decoded_query_strings: &[(impl AsRef<str>, impl AsRef<str>)],
+    signed_headers: &OrderedHeaders<'_>,
+    payload: Payload<'_>,
+) -> String {
+    create_presigned_canonical_request_with_uri_mode(method, raw_uri_path, decoded_query_strings, signed_headers, true, payload)
 }
 
 #[cfg(test)]
