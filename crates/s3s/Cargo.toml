@@ -20,6 +20,8 @@ rustdoc-args = ["--cfg", "docsrs"]
 [features]
 openssl = ["dep:openssl"]
 minio = []
+# Normalize forward slash for object name
+normalize_forward_slash = []
 
 [target.'cfg(not(windows))'.dependencies]
 openssl = { workspace = true, optional = true }
