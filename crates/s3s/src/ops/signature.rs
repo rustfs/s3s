@@ -361,11 +361,6 @@ impl SignatureContext<'_> {
             None
         });
 
-        let payload = match headers.get_unique(crate::header::X_AMZ_CONTENT_SHA256) {
-            Some(content_sha256) => sig_v4::Payload::SingleChunk(content_sha256),
-            None => sig_v4::Payload::Unsigned,
-        };
-
         let method = &self.req_method;
         let amz_date = &presigned_url.amz_date;
         let verifier = SignatureVerificationContext {
@@ -375,6 +370,10 @@ impl SignatureContext<'_> {
             amz_date,
             region,
             service,
+        };
+        let payload = match headers.get_unique(crate::header::X_AMZ_CONTENT_SHA256) {
+            Some(content_sha256) => sig_v4::Payload::SingleChunk(content_sha256),
+            None => sig_v4::Payload::Unsigned,
         };
         let canonical_request =
             sig_v4::create_presigned_canonical_request(method, self.decoded_uri_path, qs.as_ref(), &headers, payload);
@@ -707,12 +706,6 @@ impl SignatureContext<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::S3ErrorCode;
-    use crate::auth::SecretKey;
-    use crate::config::{S3ConfigProvider, StaticConfigProvider};
-    use crate::sig_v4;
-    use crate::sig_v4::AmzDate;
-    use std::sync::Arc;
 
     #[test]
     fn test_extract_amz_content_sha256_missing() {
@@ -928,6 +921,11 @@ file content\r\n\
     /// Covers the service whitelist fix in `v4_check_presigned_url`.
     #[tokio::test]
     async fn v4_presigned_url_rejects_unknown_service() {
+        use crate::S3ErrorCode;
+        use crate::auth::SecretKey;
+        use crate::config::{S3ConfigProvider, StaticConfigProvider};
+        use std::sync::Arc;
+
         // Credential scope uses "custom-svc" instead of the allowed "s3" or "sts".
         // The date is old (2013) with a huge Expires so the expiry check does not fire first.
         let qs = OrderedQs::parse(concat!(
@@ -995,7 +993,6 @@ file content\r\n\
         let raw_uri_path = "/test-bucket/path/sitemap.xmlage=";
         let amz_date = AmzDate::parse("20130524T000000Z").unwrap();
         let headers_for_signing = OrderedHeaders::from_slice_unchecked(&[("host", "s3.amazonaws.com")]);
-
         let query_strings_for_signing = &[
             ("X-Amz-Algorithm", "AWS4-HMAC-SHA256"),
             ("X-Amz-Credential", "AKIAIOSFODNN7EXAMPLE/20130524/us-east-1/s3/aws4_request"),
