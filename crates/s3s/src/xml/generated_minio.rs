@@ -879,9 +879,6 @@ impl Serialize for BucketLifecycleConfiguration {
 
 impl<'xml> Deserialize<'xml> for BucketLifecycleConfiguration {
     fn deserialize(d: &mut Deserializer<'xml>) -> DeResult<Self> {
-        // MinIO reference:
-        // - https://github.com/minio/minio/blob/7aac2a2c5b7c882e68c1ce017d8256be2feea27f/internal/bucket/lifecycle/lifecycle.go#L129-L166
-        // - https://github.com/minio/minio/blob/7aac2a2c5b7c882e68c1ce017d8256be2feea27f/internal/bucket/lifecycle/lifecycle_test.go#L441-L447
         d.named_element_any(&["LifecycleConfiguration", "BucketLifecycleConfiguration"], Deserializer::content)
     }
 }

@@ -225,7 +225,7 @@ fn codegen_xml_serde(
     ops: &Operations,
     rust_types: &RustTypes,
     root_type_names: &BTreeMap<&str, Option<&str>>,
-    patch: Option<Patch>,
+    _patch: Option<Patch>,
 ) {
     for (rust_type, xml_name) in root_type_names.iter().map(|(&name, xml_name)| (&rust_types[name], xml_name)) {
         let rust::Type::Struct(ty) = rust_type else { panic!("{rust_type:#?}") };
@@ -259,26 +259,13 @@ fn codegen_xml_serde(
             g!("impl<'xml> Deserialize<'xml> for {} {{", ty.name);
             g!("fn deserialize(d: &mut Deserializer<'xml>) -> DeResult<Self> {{");
 
-            // MinIO compatibility: accept both LifecycleConfiguration and
-            // BucketLifecycleConfiguration.
-            //
-            // MinIO reference:
-            // - https://github.com/minio/minio/blob/7aac2a2c5b7c882e68c1ce017d8256be2feea27f/internal/bucket/lifecycle/lifecycle.go#L129-L166
-            // - https://github.com/minio/minio/blob/7aac2a2c5b7c882e68c1ce017d8256be2feea27f/internal/bucket/lifecycle/lifecycle_test.go#L441-L447
-            if ty.name == "BucketLifecycleConfiguration" && matches!(patch, Some(Patch::Minio)) {
-                g!("// MinIO reference:");
-                g!(
-                    "// - https://github.com/minio/minio/blob/7aac2a2c5b7c882e68c1ce017d8256be2feea27f/internal/bucket/lifecycle/lifecycle.go#L129-L166"
-                );
-                g!(
-                    "// - https://github.com/minio/minio/blob/7aac2a2c5b7c882e68c1ce017d8256be2feea27f/internal/bucket/lifecycle/lifecycle_test.go#L441-L447"
-                );
-                g!("d.named_element_any(");
-                g!("    &[\"LifecycleConfiguration\", \"BucketLifecycleConfiguration\"],");
-                g!("    Deserializer::content,");
-                g!(")");
-            } else {
+            let alt_names = &ty.xml_alt_names;
+            if alt_names.is_empty() {
                 g!("d.named_element(\"{xml_name}\", Deserializer::content)");
+            } else {
+                let mut candidates = vec![xml_name.to_owned()];
+                candidates.extend(alt_names.iter().cloned());
+                g!("d.named_element_any(&{candidates:?}, Deserializer::content)");
             }
 
             g!("}}");

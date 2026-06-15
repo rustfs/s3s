@@ -191,15 +191,18 @@ impl<'xml> Deserializer<'xml> {
         }
     }
 
-    /// Expects a start event with any of the given names. Returns the matched name (owned).
-    fn expect_start_any(&mut self, names: &[&str]) -> DeResult<Vec<u8>> {
-        let names_bytes: Vec<Vec<u8>> = names.iter().map(|s| s.as_bytes().to_vec()).collect();
+    /// Expects a start event with any of the given names.
+    /// Returns the matched name (borrowed from `names`).
+    fn expect_start_any<'s>(&mut self, names: &'s [&str]) -> DeResult<&'s str> {
         loop {
             match self.next_event()? {
                 DeEvent::Start(x) => {
-                    let name = x.name().as_ref().to_vec();
-                    if names_bytes.contains(&name) {
-                        return Ok(name);
+                    let name = x.name();
+                    let name = name.as_ref();
+                    for &n in names {
+                        if n.as_bytes() == name {
+                            return Ok(n);
+                        }
                     }
                     return Err(unexpected_tag_name());
                 }
@@ -210,9 +213,8 @@ impl<'xml> Deserializer<'xml> {
         }
     }
 
-    /// Expects an end event (accepts both `&[u8]` and `AsRef<[u8]>` for flexibility)
-    fn expect_end(&mut self, name: impl AsRef<[u8]>) -> DeResult {
-        let name = name.as_ref();
+    /// Expects an end event
+    fn expect_end(&mut self, name: &[u8]) -> DeResult {
         loop {
             match self.next_event()? {
                 DeEvent::Start(_) => return Err(unexpected_start()),
@@ -251,18 +253,20 @@ impl<'xml> Deserializer<'xml> {
         Ok(ans)
     }
 
-    /// Deserializes an element with any of the given root names (`MinIO` compatibility).
+    /// Deserializes an element with any of the given names.
     ///
-    /// `MinIO` reference:
-    /// - <https://github.com/minio/minio/blob/7aac2a2c5b7c882e68c1ce017d8256be2feea27f/internal/bucket/lifecycle/lifecycle.go#L129-L166>
-    /// - <https://github.com/minio/minio/blob/7aac2a2c5b7c882e68c1ce017d8256be2feea27f/internal/bucket/lifecycle/lifecycle_test.go#L441-L447>
+    /// Unlike [`named_element`](Self::named_element), this method accepts
+    /// multiple candidate root element names.  It consumes the start event
+    /// (matching any of `names`), runs the content deserializer, and expects
+    /// the corresponding end event.
     ///
     /// # Errors
     /// Returns an error if the deserialization fails.
     pub fn named_element_any<T>(&mut self, names: &[&str], f: impl FnOnce(&mut Self) -> DeResult<T>) -> DeResult<T> {
+        debug_assert!(!names.is_empty(), "named_element_any requires at least one candidate name");
         let name = self.expect_start_any(names)?;
         let ans = f(self)?;
-        self.expect_end(name)?;
+        self.expect_end(name.as_bytes())?;
         Ok(ans)
     }
 
