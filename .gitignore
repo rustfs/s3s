@@ -3,3 +3,5 @@
 .vscode
 .idea
 __pycache__/
+docs/minio-metadata-compat-validation-plan.md
+docs/pr-531-upstream-analysis.md
