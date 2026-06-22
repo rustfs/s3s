@@ -4600,6 +4600,49 @@ impl fmt::Debug for DeleteMarkerEntry {
     }
 }
 
+#[derive(Clone, Default, PartialEq)]
+pub struct DeleteMarkerM {
+    pub internal: Option<ObjectInternalInfo>,
+    pub is_latest: Option<IsLatest>,
+    pub key: Option<ObjectKey>,
+    pub last_modified: Option<LastModified>,
+    pub owner: Option<Owner>,
+    pub user_metadata: Option<UserMetadataCollection>,
+    pub user_tags: Option<UserTags>,
+    pub version_id: Option<ObjectVersionId>,
+}
+
+impl fmt::Debug for DeleteMarkerM {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut d = f.debug_struct("DeleteMarkerM");
+        if let Some(ref val) = self.internal {
+            d.field("internal", val);
+        }
+        if let Some(ref val) = self.is_latest {
+            d.field("is_latest", val);
+        }
+        if let Some(ref val) = self.key {
+            d.field("key", val);
+        }
+        if let Some(ref val) = self.last_modified {
+            d.field("last_modified", val);
+        }
+        if let Some(ref val) = self.owner {
+            d.field("owner", val);
+        }
+        if let Some(ref val) = self.user_metadata {
+            d.field("user_metadata", val);
+        }
+        if let Some(ref val) = self.user_tags {
+            d.field("user_tags", val);
+        }
+        if let Some(ref val) = self.version_id {
+            d.field("version_id", val);
+        }
+        d.finish_non_exhaustive()
+    }
+}
+
 /// <p>Specifies whether Amazon S3 replicates delete markers. If you specify a <code>Filter</code>
 /// in your replication configuration, you must also include a
 /// <code>DeleteMarkerReplication</code> element. If your <code>Filter</code> includes a
@@ -11085,6 +11128,8 @@ impl FromStr for IntelligentTieringStatus {
     }
 }
 
+pub type InternalCount = i32;
+
 /// <p>Object is archived and inaccessible until restored.</p>
 /// <p>If the object you are retrieving is stored in the S3 Glacier Flexible Retrieval storage
 /// class, the S3 Glacier Deep Archive storage class, the S3 Intelligent-Tiering Archive Access
@@ -12585,6 +12630,15 @@ impl fmt::Debug for ListMultipartUploadsOutput {
     }
 }
 
+pub type ListObjectVersionMEntries = List<ListObjectVersionMEntry>;
+
+#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub enum ListObjectVersionMEntry {
+    DeleteMarker(DeleteMarkerM),
+    Version(ObjectVersionM),
+}
+
 #[derive(Clone, Default, PartialEq)]
 pub struct ListObjectVersionsInput {
     /// <p>The bucket name that contains the objects. </p>
@@ -12660,6 +12714,67 @@ impl ListObjectVersionsInput {
     #[must_use]
     pub fn builder() -> builders::ListObjectVersionsInputBuilder {
         default()
+    }
+}
+
+#[derive(Clone, Default, PartialEq)]
+pub struct ListObjectVersionsMOutput {
+    pub common_prefixes: Option<CommonPrefixList>,
+    pub delimiter: Option<Delimiter>,
+    pub encoding_type: Option<EncodingType>,
+    pub entries: ListObjectVersionMEntries,
+    pub is_truncated: Option<IsTruncated>,
+    pub key_marker: Option<KeyMarker>,
+    pub max_keys: Option<MaxKeys>,
+    pub name: Option<BucketName>,
+    pub next_key_marker: Option<NextKeyMarker>,
+    pub next_version_id_marker: Option<NextVersionIdMarker>,
+    pub prefix: Option<Prefix>,
+    pub request_charged: Option<RequestCharged>,
+    pub version_id_marker: Option<VersionIdMarker>,
+}
+
+impl fmt::Debug for ListObjectVersionsMOutput {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut d = f.debug_struct("ListObjectVersionsMOutput");
+        if let Some(ref val) = self.common_prefixes {
+            d.field("common_prefixes", val);
+        }
+        if let Some(ref val) = self.delimiter {
+            d.field("delimiter", val);
+        }
+        if let Some(ref val) = self.encoding_type {
+            d.field("encoding_type", val);
+        }
+        d.field("entries", &self.entries);
+        if let Some(ref val) = self.is_truncated {
+            d.field("is_truncated", val);
+        }
+        if let Some(ref val) = self.key_marker {
+            d.field("key_marker", val);
+        }
+        if let Some(ref val) = self.max_keys {
+            d.field("max_keys", val);
+        }
+        if let Some(ref val) = self.name {
+            d.field("name", val);
+        }
+        if let Some(ref val) = self.next_key_marker {
+            d.field("next_key_marker", val);
+        }
+        if let Some(ref val) = self.next_version_id_marker {
+            d.field("next_version_id_marker", val);
+        }
+        if let Some(ref val) = self.prefix {
+            d.field("prefix", val);
+        }
+        if let Some(ref val) = self.request_charged {
+            d.field("request_charged", val);
+        }
+        if let Some(ref val) = self.version_id_marker {
+            d.field("version_id_marker", val);
+        }
+        d.finish_non_exhaustive()
     }
 }
 
@@ -13095,6 +13210,69 @@ impl ListObjectsV2Input {
     #[must_use]
     pub fn builder() -> builders::ListObjectsV2InputBuilder {
         default()
+    }
+}
+
+#[derive(Clone, Default, PartialEq)]
+pub struct ListObjectsV2MOutput {
+    pub common_prefixes: Option<CommonPrefixList>,
+    pub contents: Option<ObjectMList>,
+    pub continuation_token: Option<Token>,
+    pub delimiter: Option<Delimiter>,
+    pub encoding_type: Option<EncodingType>,
+    pub is_truncated: Option<IsTruncated>,
+    pub key_count: Option<KeyCount>,
+    pub max_keys: Option<MaxKeys>,
+    pub name: Option<BucketName>,
+    pub next_continuation_token: Option<NextToken>,
+    pub prefix: Option<Prefix>,
+    pub request_charged: Option<RequestCharged>,
+    pub start_after: Option<StartAfter>,
+}
+
+impl fmt::Debug for ListObjectsV2MOutput {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut d = f.debug_struct("ListObjectsV2MOutput");
+        if let Some(ref val) = self.common_prefixes {
+            d.field("common_prefixes", val);
+        }
+        if let Some(ref val) = self.contents {
+            d.field("contents", val);
+        }
+        if let Some(ref val) = self.continuation_token {
+            d.field("continuation_token", val);
+        }
+        if let Some(ref val) = self.delimiter {
+            d.field("delimiter", val);
+        }
+        if let Some(ref val) = self.encoding_type {
+            d.field("encoding_type", val);
+        }
+        if let Some(ref val) = self.is_truncated {
+            d.field("is_truncated", val);
+        }
+        if let Some(ref val) = self.key_count {
+            d.field("key_count", val);
+        }
+        if let Some(ref val) = self.max_keys {
+            d.field("max_keys", val);
+        }
+        if let Some(ref val) = self.name {
+            d.field("name", val);
+        }
+        if let Some(ref val) = self.next_continuation_token {
+            d.field("next_continuation_token", val);
+        }
+        if let Some(ref val) = self.prefix {
+            d.field("prefix", val);
+        }
+        if let Some(ref val) = self.request_charged {
+            d.field("request_charged", val);
+        }
+        if let Some(ref val) = self.start_after {
+            d.field("start_after", val);
+        }
+        d.finish_non_exhaustive()
     }
 }
 
@@ -14475,6 +14653,21 @@ impl fmt::Debug for ObjectIdentifier {
 
 pub type ObjectIdentifierList = List<ObjectIdentifier>;
 
+#[derive(Clone, Default, PartialEq)]
+pub struct ObjectInternalInfo {
+    pub k: InternalCount,
+    pub m: InternalCount,
+}
+
+impl fmt::Debug for ObjectInternalInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut d = f.debug_struct("ObjectInternalInfo");
+        d.field("k", &self.k);
+        d.field("m", &self.m);
+        d.finish_non_exhaustive()
+    }
+}
+
 pub type ObjectKey = String;
 
 pub type ObjectList = List<Object>;
@@ -14721,6 +14914,55 @@ impl fmt::Debug for ObjectLockRule {
 }
 
 pub type ObjectLockToken = String;
+
+#[derive(Clone, Default, PartialEq)]
+pub struct ObjectM {
+    pub e_tag: Option<ETag>,
+    pub internal: Option<ObjectInternalInfo>,
+    pub key: Option<ObjectKey>,
+    pub last_modified: Option<LastModified>,
+    pub owner: Option<Owner>,
+    pub size: Option<Size>,
+    pub storage_class: Option<ObjectStorageClass>,
+    pub user_metadata: Option<UserMetadataCollection>,
+    pub user_tags: Option<UserTags>,
+}
+
+impl fmt::Debug for ObjectM {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut d = f.debug_struct("ObjectM");
+        if let Some(ref val) = self.e_tag {
+            d.field("e_tag", val);
+        }
+        if let Some(ref val) = self.internal {
+            d.field("internal", val);
+        }
+        if let Some(ref val) = self.key {
+            d.field("key", val);
+        }
+        if let Some(ref val) = self.last_modified {
+            d.field("last_modified", val);
+        }
+        if let Some(ref val) = self.owner {
+            d.field("owner", val);
+        }
+        if let Some(ref val) = self.size {
+            d.field("size", val);
+        }
+        if let Some(ref val) = self.storage_class {
+            d.field("storage_class", val);
+        }
+        if let Some(ref val) = self.user_metadata {
+            d.field("user_metadata", val);
+        }
+        if let Some(ref val) = self.user_tags {
+            d.field("user_tags", val);
+        }
+        d.finish_non_exhaustive()
+    }
+}
+
+pub type ObjectMList = List<ObjectM>;
 
 /// <p>The source object of the COPY action is not in the active tier and is only stored in
 /// Amazon S3 Glacier.</p>
@@ -14989,6 +15231,61 @@ impl fmt::Debug for ObjectVersion {
 pub type ObjectVersionId = String;
 
 pub type ObjectVersionList = List<ObjectVersion>;
+
+#[derive(Clone, Default, PartialEq)]
+pub struct ObjectVersionM {
+    pub e_tag: Option<ETag>,
+    pub internal: Option<ObjectInternalInfo>,
+    pub is_latest: Option<IsLatest>,
+    pub key: Option<ObjectKey>,
+    pub last_modified: Option<LastModified>,
+    pub owner: Option<Owner>,
+    pub size: Option<Size>,
+    pub storage_class: Option<ObjectVersionStorageClass>,
+    pub user_metadata: Option<UserMetadataCollection>,
+    pub user_tags: Option<UserTags>,
+    pub version_id: Option<ObjectVersionId>,
+}
+
+impl fmt::Debug for ObjectVersionM {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut d = f.debug_struct("ObjectVersionM");
+        if let Some(ref val) = self.e_tag {
+            d.field("e_tag", val);
+        }
+        if let Some(ref val) = self.internal {
+            d.field("internal", val);
+        }
+        if let Some(ref val) = self.is_latest {
+            d.field("is_latest", val);
+        }
+        if let Some(ref val) = self.key {
+            d.field("key", val);
+        }
+        if let Some(ref val) = self.last_modified {
+            d.field("last_modified", val);
+        }
+        if let Some(ref val) = self.owner {
+            d.field("owner", val);
+        }
+        if let Some(ref val) = self.size {
+            d.field("size", val);
+        }
+        if let Some(ref val) = self.storage_class {
+            d.field("storage_class", val);
+        }
+        if let Some(ref val) = self.user_metadata {
+            d.field("user_metadata", val);
+        }
+        if let Some(ref val) = self.user_tags {
+            d.field("user_tags", val);
+        }
+        if let Some(ref val) = self.version_id {
+            d.field("version_id", val);
+        }
+        d.finish_non_exhaustive()
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObjectVersionStorageClass(Cow<'static, str>);
@@ -21689,6 +21986,42 @@ impl fmt::Debug for UploadPartOutput {
 }
 
 pub type UserMetadata = List<MetadataEntry>;
+
+#[derive(Clone, Default, PartialEq)]
+pub struct UserMetadataCollection {
+    pub items: UserMetadataEntries,
+}
+
+impl fmt::Debug for UserMetadataCollection {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut d = f.debug_struct("UserMetadataCollection");
+        d.field("items", &self.items);
+        d.finish_non_exhaustive()
+    }
+}
+
+pub type UserMetadataEntries = List<UserMetadataEntry>;
+
+#[derive(Clone, Default, PartialEq)]
+pub struct UserMetadataEntry {
+    pub key: UserMetadataKey,
+    pub value: UserMetadataValue,
+}
+
+impl fmt::Debug for UserMetadataEntry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut d = f.debug_struct("UserMetadataEntry");
+        d.field("key", &self.key);
+        d.field("value", &self.value);
+        d.finish_non_exhaustive()
+    }
+}
+
+pub type UserMetadataKey = String;
+
+pub type UserMetadataValue = String;
+
+pub type UserTags = String;
 
 pub type Value = String;
 
@@ -34819,6 +35152,28 @@ impl DtoExt for DeleteMarkerEntry {
         }
     }
 }
+impl DtoExt for DeleteMarkerM {
+    fn ignore_empty_strings(&mut self) {
+        if let Some(ref mut val) = self.internal {
+            val.ignore_empty_strings();
+        }
+        if self.key.as_deref() == Some("") {
+            self.key = None;
+        }
+        if let Some(ref mut val) = self.owner {
+            val.ignore_empty_strings();
+        }
+        if let Some(ref mut val) = self.user_metadata {
+            val.ignore_empty_strings();
+        }
+        if self.user_tags.as_deref() == Some("") {
+            self.user_tags = None;
+        }
+        if self.version_id.as_deref() == Some("") {
+            self.version_id = None;
+        }
+    }
+}
 impl DtoExt for DeleteMarkerReplication {
     fn ignore_empty_strings(&mut self) {
         if let Some(ref val) = self.status
@@ -36254,6 +36609,41 @@ impl DtoExt for ListObjectVersionsInput {
         }
     }
 }
+impl DtoExt for ListObjectVersionsMOutput {
+    fn ignore_empty_strings(&mut self) {
+        if self.delimiter.as_deref() == Some("") {
+            self.delimiter = None;
+        }
+        if let Some(ref val) = self.encoding_type
+            && val.as_str() == ""
+        {
+            self.encoding_type = None;
+        }
+        if self.key_marker.as_deref() == Some("") {
+            self.key_marker = None;
+        }
+        if self.name.as_deref() == Some("") {
+            self.name = None;
+        }
+        if self.next_key_marker.as_deref() == Some("") {
+            self.next_key_marker = None;
+        }
+        if self.next_version_id_marker.as_deref() == Some("") {
+            self.next_version_id_marker = None;
+        }
+        if self.prefix.as_deref() == Some("") {
+            self.prefix = None;
+        }
+        if let Some(ref val) = self.request_charged
+            && val.as_str() == ""
+        {
+            self.request_charged = None;
+        }
+        if self.version_id_marker.as_deref() == Some("") {
+            self.version_id_marker = None;
+        }
+    }
+}
 impl DtoExt for ListObjectVersionsOutput {
     fn ignore_empty_strings(&mut self) {
         if self.delimiter.as_deref() == Some("") {
@@ -36367,6 +36757,38 @@ impl DtoExt for ListObjectsV2Input {
             && val.as_str() == ""
         {
             self.request_payer = None;
+        }
+        if self.start_after.as_deref() == Some("") {
+            self.start_after = None;
+        }
+    }
+}
+impl DtoExt for ListObjectsV2MOutput {
+    fn ignore_empty_strings(&mut self) {
+        if self.continuation_token.as_deref() == Some("") {
+            self.continuation_token = None;
+        }
+        if self.delimiter.as_deref() == Some("") {
+            self.delimiter = None;
+        }
+        if let Some(ref val) = self.encoding_type
+            && val.as_str() == ""
+        {
+            self.encoding_type = None;
+        }
+        if self.name.as_deref() == Some("") {
+            self.name = None;
+        }
+        if self.next_continuation_token.as_deref() == Some("") {
+            self.next_continuation_token = None;
+        }
+        if self.prefix.as_deref() == Some("") {
+            self.prefix = None;
+        }
+        if let Some(ref val) = self.request_charged
+            && val.as_str() == ""
+        {
+            self.request_charged = None;
         }
         if self.start_after.as_deref() == Some("") {
             self.start_after = None;
@@ -36610,6 +37032,9 @@ impl DtoExt for ObjectIdentifier {
         }
     }
 }
+impl DtoExt for ObjectInternalInfo {
+    fn ignore_empty_strings(&mut self) {}
+}
 impl DtoExt for ObjectLockConfiguration {
     fn ignore_empty_strings(&mut self) {
         if let Some(ref val) = self.object_lock_enabled
@@ -36644,6 +37069,30 @@ impl DtoExt for ObjectLockRule {
     fn ignore_empty_strings(&mut self) {
         if let Some(ref mut val) = self.default_retention {
             val.ignore_empty_strings();
+        }
+    }
+}
+impl DtoExt for ObjectM {
+    fn ignore_empty_strings(&mut self) {
+        if let Some(ref mut val) = self.internal {
+            val.ignore_empty_strings();
+        }
+        if self.key.as_deref() == Some("") {
+            self.key = None;
+        }
+        if let Some(ref mut val) = self.owner {
+            val.ignore_empty_strings();
+        }
+        if let Some(ref val) = self.storage_class
+            && val.as_str() == ""
+        {
+            self.storage_class = None;
+        }
+        if let Some(ref mut val) = self.user_metadata {
+            val.ignore_empty_strings();
+        }
+        if self.user_tags.as_deref() == Some("") {
+            self.user_tags = None;
         }
     }
 }
@@ -36686,6 +37135,33 @@ impl DtoExt for ObjectVersion {
             && val.as_str() == ""
         {
             self.storage_class = None;
+        }
+        if self.version_id.as_deref() == Some("") {
+            self.version_id = None;
+        }
+    }
+}
+impl DtoExt for ObjectVersionM {
+    fn ignore_empty_strings(&mut self) {
+        if let Some(ref mut val) = self.internal {
+            val.ignore_empty_strings();
+        }
+        if self.key.as_deref() == Some("") {
+            self.key = None;
+        }
+        if let Some(ref mut val) = self.owner {
+            val.ignore_empty_strings();
+        }
+        if let Some(ref val) = self.storage_class
+            && val.as_str() == ""
+        {
+            self.storage_class = None;
+        }
+        if let Some(ref mut val) = self.user_metadata {
+            val.ignore_empty_strings();
+        }
+        if self.user_tags.as_deref() == Some("") {
+            self.user_tags = None;
         }
         if self.version_id.as_deref() == Some("") {
             self.version_id = None;
@@ -38082,6 +38558,12 @@ impl DtoExt for UploadPartOutput {
             self.server_side_encryption = None;
         }
     }
+}
+impl DtoExt for UserMetadataCollection {
+    fn ignore_empty_strings(&mut self) {}
+}
+impl DtoExt for UserMetadataEntry {
+    fn ignore_empty_strings(&mut self) {}
 }
 impl DtoExt for VersioningConfiguration {
     fn ignore_empty_strings(&mut self) {

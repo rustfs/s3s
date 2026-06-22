@@ -2020,7 +2020,11 @@ impl<'xml> DeserializeContent<'xml> for BucketLifecycleConfiguration {
                 rules.get_or_insert_with(List::new).push(ans);
                 Ok(())
             }
-            _ => Err(DeError::UnexpectedTagName),
+            // MinIO reference:
+            // - https://github.com/minio/minio/blob/7aac2a2c5b7c882e68c1ce017d8256be2feea27f/internal/bucket/lifecycle/lifecycle.go#L102-L166
+            // - https://github.com/minio/minio/blob/7aac2a2c5b7c882e68c1ce017d8256be2feea27f/internal/bucket/lifecycle/delmarker-expiration.go#L27-L64
+            // - https://github.com/minio/minio/blob/7aac2a2c5b7c882e68c1ce017d8256be2feea27f/internal/bucket/lifecycle/expiration.go#L115-L124
+            _ => Ok(()),
         })?;
         Ok(Self {
             expiry_updated_at,
