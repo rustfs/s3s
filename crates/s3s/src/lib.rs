@@ -161,6 +161,7 @@ pub use self::error::*;
 pub use self::http::Body;
 pub use self::s3_op::S3Operation;
 pub use self::s3_trait::S3;
+pub use self::sig_v4::UploadStreamError;
 
 pub use self::protocol::HttpError;
 pub use self::protocol::HttpRequest;
