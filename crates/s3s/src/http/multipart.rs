@@ -92,6 +92,27 @@ impl Multipart {
         Some(pair.1.as_str())
     }
 
+    /// Substitutes the `${filename}` variable in the `key` field with the
+    /// filename supplied by the file part, per the AWS POST upload contract:
+    /// <https://docs.aws.amazon.com/AmazonS3/latest/userguide/HTTPPOSTForms.html#HTTPPOSTFormFields>
+    ///
+    /// Amazon S3 replaces the variable verbatim and defines no escaping
+    /// mechanism, so a key containing a literal `${filename}` cannot be
+    /// uploaded through POST — this matches AWS behavior. Callers must invoke
+    /// this before evaluating POST policy conditions so that `eq`/`starts-with`
+    /// constraints on `$key` apply to the final substituted key.
+    pub(crate) fn substitute_key_filename(&mut self) {
+        const FILENAME_VARIABLE: &str = "${filename}";
+        let upper_bound = self.fields.partition_point(|x| x.0.as_str() <= "key");
+        let Some(pair) = upper_bound.checked_sub(1).and_then(|idx| self.fields.get_mut(idx)) else {
+            return;
+        };
+        if pair.0.as_str() != "key" || !pair.1.contains(FILENAME_VARIABLE) {
+            return;
+        }
+        pair.1 = pair.1.replace(FILENAME_VARIABLE, &self.file.name);
+    }
+
     /// Create a Multipart for testing purposes
     ///
     /// This mirrors the normalization performed in `try_parse` by:
@@ -779,6 +800,54 @@ mod tests {
         }
 
         Ok(buf.into())
+    }
+
+    fn test_file(name: &str) -> File {
+        File {
+            name: name.to_owned(),
+            content_type: None,
+            stream: None,
+        }
+    }
+
+    #[test]
+    fn substitute_key_filename_replaces_variable_before_policy_checks() {
+        let mut m = Multipart::new_for_test(
+            vec![
+                ("key".to_owned(), "user/betty/${filename}".to_owned()),
+                ("policy".to_owned(), "policy-data".to_owned()),
+            ],
+            test_file("photo1.jpg"),
+        );
+        m.substitute_key_filename();
+        assert_eq!(m.find_field_value("key"), Some("user/betty/photo1.jpg"));
+
+        // Every occurrence is substituted, matching a verbatim replace.
+        let mut m =
+            Multipart::new_for_test(vec![("key".to_owned(), "${filename}/copies/${filename}".to_owned())], test_file("a.txt"));
+        m.substitute_key_filename();
+        assert_eq!(m.find_field_value("key"), Some("a.txt/copies/a.txt"));
+    }
+
+    #[test]
+    fn substitute_key_filename_leaves_plain_keys_and_other_fields_alone() {
+        let mut m = Multipart::new_for_test(
+            vec![
+                ("key".to_owned(), "plain-key.txt".to_owned()),
+                ("success_action_redirect".to_owned(), "https://example.com/${filename}".to_owned()),
+            ],
+            test_file("photo1.jpg"),
+        );
+        m.substitute_key_filename();
+        assert_eq!(m.find_field_value("key"), Some("plain-key.txt"));
+        // Only the key field participates in the substitution contract.
+        assert_eq!(m.find_field_value("success_action_redirect"), Some("https://example.com/${filename}"));
+
+        // No key field at all: nothing to do (the missing-key error is
+        // reported later by input deserialization).
+        let mut m = Multipart::new_for_test(vec![("policy".to_owned(), "policy-data".to_owned())], test_file("photo1.jpg"));
+        m.substitute_key_filename();
+        assert_eq!(m.find_field_value("key"), None);
     }
 
     #[test]
